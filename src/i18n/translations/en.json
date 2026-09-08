@@ -1,0 +1,314 @@
+{
+  "app": {
+    "name": "AkshAI",
+    "tagline": "Learn. Play. Grow.",
+    "prototypeTag": "Hackathon Prototype",
+    "nonMedicalBadge": "Screening & Learning Support • Non-Medical"
+  },
+  "nav": {
+    "splash": "Splash",
+    "language": "Language",
+    "profile": "Profile",
+    "home": "Dashboard",
+    "screening": "Screening",
+    "learning": "Learning Hub",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "save": "Save",
+    "changeLanguage": "Change Language",
+    "editProfile": "Edit Profile"
+  },
+  "splash": {
+    "title": "AkshAI",
+    "tagline": "Learn. Play. Grow.",
+    "subtitle": "A playful, AI-guided Indian learning platform for children aged 6–12",
+    "description": "Discover your reading superpowers through fun gamified quests, voice-guided phonics, and friendly learning companions.",
+    "startBtn": "Let's Begin the Adventure!",
+    "feature1": "Gamified Screening Quests",
+    "feature2": "12 Indian Languages",
+    "feature3": "Personalized AI Learning",
+    "disclaimer": "Important: AkshAI provides early screening indicators and personalized learning support. It is NOT a medical diagnosis tool."
+  },
+  "languageSelect": {
+    "title": "Choose Your Language",
+    "titleNative": "உங்கள் கற்றல் மொழியைத் தேர்ந்தெடுக்கவும்",
+    "subtitle": "Select the language you feel most comfortable reading, listening, and playing in.",
+    "searchPlaceholder": "Search language (e.g. Tamil, தமிழ், Hindi)...",
+    "listenTip": "Tap the speaker on any card to hear a cheerful greeting!",
+    "selectedBadge": "Selected",
+    "confirmBtn": "Continue with {language}",
+    "allLanguagesCount": "{count} Indian Languages Available",
+    "noResults": "No languages found matching \"{query}\". Try another search!"
+  },
+  "profile": {
+    "title": "Build Your Explorer Profile",
+    "subtitle": "Tell Akshu a little about yourself so your learning quests are just right!",
+    "nameLabel": "What is your name?",
+    "namePlaceholder": "Enter your name (e.g. Aarav, Kavya)",
+    "ageLabel": "How old are you?",
+    "ageUnit": "Years",
+    "gradeLabel": "What grade or class are you in?",
+    "gradeOptions": [
+      "Class 1",
+      "Class 2",
+      "Class 3",
+      "Class 4",
+      "Class 5",
+      "Class 6",
+      "Class 7"
+    ],
+    "avatarLabel": "Choose your learning buddy avatar",
+    "preferredLanguageLabel": "Preferred Language",
+    "submitBtn": "Save & Start Adventure!",
+    "mascotPrompt": "Hello! I am Akshu, your wise owl guide. Pick a cool avatar and let's get ready for learning quests!",
+    "errors": {
+      "nameRequired": "Please enter your name to continue!"
+    }
+  },
+  "home": {
+    "greeting": "Welcome back, {name}!",
+    "mascotCheer": "You're on a {streak}-day streak! Ready to discover today's reading superpower?",
+    "xpLabel": "XP",
+    "levelLabel": "Level {level}",
+    "levelTitle": "Word Explorer",
+    "streakLabel": "Day Streak!",
+    "screeningCard": {
+      "badge": "AI Screening Quest",
+      "title": "Discover Your Reading Superpower",
+      "description": "A joyful 10-minute game quest to evaluate how you see letters, hear sounds, and blend words.",
+      "startBtn": "Start Screening Adventure",
+      "indicatorsNotice": "Analyzes screening indicators for possible reading difficulties. Learning support, not a clinical diagnosis.",
+      "estimatedTime": "10 Mins • 3 Mini-Games",
+      "status": "Ready for today's check-in"
+    },
+    "progressSection": {
+      "title": "My Learning Progress",
+      "subtitle": "Screening indicators & reading milestones observed during quests",
+      "overallScore": "Overall Readiness",
+      "phonemicAwareness": "Phonemic Awareness",
+      "letterRecognition": "Letter Recognition",
+      "visualTracking": "Visual Tracking",
+      "soundBlending": "Sound Blending & Fluency",
+      "strongStatus": "Strong Superpower",
+      "developingStatus": "Developing Well",
+      "supportStatus": "Extra Fun Practice Recommended",
+      "chartScoreLabel": "Skill Score"
+    },
+    "gamesSection": {
+      "title": "Personalized Learning Games",
+      "subtitle": "Tailored fun activities to strengthen reading and writing confidence",
+      "playNow": "Play Quest",
+      "game1Title": "Letter Bubble Pop",
+      "game1Desc": "Pop floating bubbles matching the exact sound Akshu speaks aloud!",
+      "game2Title": "Rhyme Safari",
+      "game2Desc": "Help baby animals jump across stones by picking words that rhyme!",
+      "game3Title": "Mirror Letter Mystery",
+      "game3Desc": "Spot and guide tricky twins like 'b' and 'd' to their correct castles!"
+    },
+    "badgesSection": {
+      "title": "Badge & Trophy Showcase",
+      "subtitle": "Collect glowing badges as you play, read, and master new skills",
+      "unlocked": "Unlocked!",
+      "locked": "Locked",
+      "badge1Title": "Phonics Star",
+      "badge1Desc": "Completed 5 phonics listening games with flying colors",
+      "badge2Title": "Streak Champion",
+      "badge2Desc": "Logged in and practiced reading for 3 days in a row",
+      "badge3Title": "Sound Blender",
+      "badge3Desc": "Blended 20 word syllables smoothly",
+      "badge4Title": "Letter Detective",
+      "badge4Desc": "Solved 15 mirror letter puzzles accurately"
+    }
+  },
+  "avatars": {
+    "sheru": {
+      "name": "Sheru the Lion",
+      "role": "Courageous Reader"
+    },
+    "mayil": {
+      "name": "Mayil the Peacock",
+      "role": "Pattern Detective"
+    },
+    "gaju": {
+      "name": "Gaju the Elephant",
+      "role": "Memory Master"
+    },
+    "bandu": {
+      "name": "Bandu the Monkey",
+      "role": "Sound Acrobat"
+    },
+    "akshu": {
+      "name": "Akshu the Owl",
+      "role": "Wise Explorer"
+    },
+    "veera": {
+      "name": "Veera the Tiger",
+      "role": "Word Champion"
+    }
+  },
+  "screening": {
+    "intro": {
+      "title": "Let's Discover How You Learn!",
+      "subtitle": "This short activity looks at reading, spelling, letter recognition, and comprehension. There are no right or wrong feelings about learning. Just try your best!",
+      "timeEstimate": "5–7 Minutes",
+      "activitiesCount": "4 Fun Activities",
+      "micPermission": "Microphone will be used for the sentence reading activity. Speak naturally and clearly.",
+      "startBtn": "Start Screening",
+      "mascotCheer": "Take a deep breath and have fun! Akshu is right beside you on this adventure.",
+      "overviewLetter": "Letter Detective",
+      "overviewLetterDesc": "Identify target letters and tricky twins",
+      "overviewReading": "Read Aloud Quest",
+      "overviewReadingDesc": "Read a sentence aloud with voice guidance",
+      "overviewSpelling": "Listen & Spell",
+      "overviewSpellingDesc": "Hear sounds and type the matching word",
+      "overviewComp": "Story Explorer",
+      "overviewCompDesc": "Read a short story and answer fun questions"
+    },
+    "letter": {
+      "step": "Activity 1 of 4: Letter Recognition",
+      "progress": "Question {current} of {total}",
+      "listenLetter": "Listen to Sound",
+      "chooseLetter": "Tap the matching letter:",
+      "correctFeedback": "Awesome choice! You got it!",
+      "gentleFeedback": "Good try! Every letter is an adventure to learn.",
+      "nextBtn": "Next Question",
+      "finishBtn": "Continue to Reading Test"
+    },
+    "reading": {
+      "step": "Activity 2 of 4: Reading Test",
+      "instruction": "Read the sentence below clearly out loud when ready.",
+      "listenSentence": "Listen to Sentence",
+      "startRecord": "Start Recording",
+      "stopRecord": "Stop Recording",
+      "recordingState": "Listening to your reading... Speak naturally!",
+      "skip": "Skip Activity",
+      "analyzing": "Analyzing your reading with AI speech models...",
+      "analysisDone": "Reading Speech Analysis Ready!",
+      "accuracyLabel": "Reading Accuracy",
+      "wordsCorrectLabel": "Words Read Correctly",
+      "patternObservation": "Phonological Pattern Observation",
+      "continueBtn": "Continue to Spelling Test"
+    },
+    "spelling": {
+      "step": "Activity 3 of 4: Spelling Test",
+      "instruction": "Tap the speaker to listen to the word, then type it below.",
+      "listenWord": "Listen to Word",
+      "inputPlaceholder": "Type your answer here...",
+      "submitBtn": "Check Word",
+      "correctFeedback": "Wonderful! Perfect spelling!",
+      "gentleFeedback": "Nice effort! Words can be tricky, and that's okay!",
+      "nextBtn": "Next Word",
+      "finishBtn": "Continue to Comprehension Test"
+    },
+    "comprehension": {
+      "step": "Activity 4 of 4: Story Comprehension",
+      "instruction": "Read this short passage, then answer the questions below.",
+      "listenStory": "Listen to Story",
+      "nextQuestion": "Next Question",
+      "finishBtn": "Complete Screening & View Results"
+    },
+    "analysis": {
+      "title": "Analyzing your learning activities...",
+      "step1": "Evaluating letter recognition patterns...",
+      "step2": "Analyzing speech rhythms and phonemic accuracy...",
+      "step3": "Synthesizing spelling and comprehension superpowers...",
+      "disclaimer": "Generating personalized indicative screening profile (non-medical)..."
+    },
+    "profile": {
+      "title": "Your Explorer Learning Profile",
+      "subtitle": "Here is how you learn best, your reading superpowers, and fun areas to practice!",
+      "overallReadiness": "Overall Screening Indicator Score",
+      "strengthsTitle": "YOUR STRENGTHS",
+      "practiceTitle": "PRACTICE AREAS",
+      "disclaimer": "This screening is not a medical diagnosis. If you have concerns about your child's learning, please consult a qualified educational psychologist or healthcare professional.",
+      "indicativeSummary": "Your results show some areas where additional reading and spelling practice may be helpful.",
+      "startPersonalizedBtn": "Start Personalized Learning (+100 XP)",
+      "viewProgressBtn": "View Progress Dashboard",
+      "skills": {
+        "letter": "Letter Recognition",
+        "reading": "Reading Accuracy",
+        "spelling": "Spelling",
+        "comprehension": "Comprehension"
+      }
+    }
+  },
+  "badges": {
+    "firstSteps": {
+      "title": "First Steps",
+      "desc": "Completed your first learning activity on AkshAI!"
+    },
+    "letterExplorer": {
+      "title": "Letter Explorer",
+      "desc": "Mastered tricky letters and character twins."
+    },
+    "wordBuilder": {
+      "title": "Word Builder",
+      "desc": "Arranged letter tiles to construct 3 full words."
+    },
+    "storyReader": {
+      "title": "Story Reader",
+      "desc": "Explored adventures and solved comprehension quests."
+    },
+    "readingStar": {
+      "title": "Reading Star",
+      "desc": "Read aloud with crystal clarity and steady rhythm."
+    },
+    "spellingStar": {
+      "title": "Spelling Champion",
+      "desc": "Spelled phonetically challenging words correctly."
+    },
+    "streak": {
+      "title": "Streak Master",
+      "desc": "Practiced for 3 consecutive days with great focus."
+    },
+    "champion": {
+      "title": "Learning Champion",
+      "desc": "Conquered 5 varied learning challenges across all skills!"
+    }
+  },
+  "learning": {
+    "games": {
+      "letterMatch": {
+        "title": "Letter Match",
+        "desc": "Find the matching letter and conquer tricky character twins!"
+      },
+      "wordBuilder": {
+        "title": "Word Builder",
+        "desc": "Piece scrambled letters together to create wonderful words."
+      },
+      "readAloud": {
+        "title": "Read Aloud",
+        "desc": "Practice reading sentences with real-time speech guidance."
+      },
+      "soundBuilder": {
+        "title": "Sound Builder",
+        "desc": "Connect phonemic sounds to the right letters."
+      },
+      "storyExplorer": {
+        "title": "Story Explorer",
+        "desc": "Read along with animated stories and solve fun questions."
+      },
+      "spellQuest": {
+        "title": "Spell Quest",
+        "desc": "Listen to spoken clues and tap letters to spell accurately."
+      }
+    },
+    "skills": {
+      "letterRecognition": "Letter Recognition",
+      "wordBuilding": "Word Building",
+      "readingFluency": "Reading Fluency",
+      "phonemicAwareness": "Sound Awareness",
+      "comprehension": "Story Comprehension",
+      "spelling": "Phonetic Spelling"
+    },
+    "recommendations": {
+      "readingReason": "Recommended because reading fluency is currently your best opportunity for growth.",
+      "spellingReason": "Recommended to strengthen spelling patterns and sound-symbol memory.",
+      "letterReason": "Recommended to practice letter orientation and conquer tricky letter pairs.",
+      "comprehensionReason": "Recommended to boost story recall, paragraph context clues, and active curiosity.",
+      "wordBuilderReason": "Fun activity to practice arranging letters into words.",
+      "soundBuilderReason": "Connect phonemes and spoken sounds with interactive letter cards."
+    }
+  }
+}

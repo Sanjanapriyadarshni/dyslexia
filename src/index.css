@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Lexend', 'Nunito', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc;
+    letter-spacing: 0.015em;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Dyslexia-accessible button and focus styles */
+  :focus-visible {
+    outline: 3px solid #0d9488;
+    outline-offset: 2px;
+  }
+}
+
+/* Custom interactive bounce & playful animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes gentleWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-wiggle-hover:hover {
+  animation: gentleWiggle 0.4s ease-in-out infinite;
+}
+
+/* Tactile 3D button press utility */
+.btn-tactile {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 5px 0 0 rgba(0, 0, 0, 0.14);
+}
+
+.btn-tactile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 0 rgba(0, 0, 0, 0.16);
+}
+
+.btn-tactile:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.14);
+}
