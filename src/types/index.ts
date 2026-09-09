@@ -23,6 +23,8 @@ export interface LanguageConfig {
   region: string;
 }
 
+export type UserRole = 'child' | 'parent' | 'teacher';
+
 export type ScreenType =
   | 'splash'
   | 'language-select'
@@ -42,7 +44,9 @@ export type ScreenType =
   | 'game-spell-quest'
   | 'game-read-aloud'
   | 'game-sound-builder'
-  | 'game-story-explorer';
+  | 'game-story-explorer'
+  | 'parent-dashboard'
+  | 'teacher-dashboard';
 
 export interface Avatar {
   id: string;
@@ -217,4 +221,83 @@ export interface ScreeningReport {
   recommendedGames: string[];
   readingAnalysisDetails?: SpeechAnalysisResult;
   disclaimer: string;
+}
+
+// -------------------------------------------------------------
+// Parent & Teacher Dashboard Types
+// -------------------------------------------------------------
+
+export interface ActivityLogItem {
+  id: string;
+  gameId?: GameId;
+  title: string;
+  type: 'game' | 'screening';
+  icon: string;
+  xpEarned: number;
+  starsEarned: number;
+  skillPracticed: string;
+  timestamp: string;
+  relativeTimeKey: string;
+}
+
+export interface WeeklyProgressPoint {
+  day: string;
+  fullDate: string;
+  reading: number;
+  spelling: number;
+  letterRecognition: number;
+  comprehension: number;
+  practiceTimeMinutes: number;
+}
+
+export interface SkillOverviewItem {
+  id: string;
+  name: string;
+  score: number;
+  previousScore: number;
+  changePercent: number;
+  status: 'strong' | 'developing' | 'support_recommended';
+  color: string;
+}
+
+export interface ParentRecommendation {
+  id: string;
+  skillId: string;
+  title: string;
+  description: string;
+  category: 'reading' | 'spelling' | 'comprehension' | 'habits';
+  suggestedAction: string;
+  priority: 'high' | 'medium' | 'gentle';
+}
+
+export interface StudentSummary {
+  id: string;
+  name: string;
+  avatarId: string;
+  avatarEmoji: string;
+  grade: string;
+  age: number;
+  readingScore: number;
+  spellingScore: number;
+  letterScore: number;
+  comprehensionScore: number;
+  overallScore: number;
+  weeklyTrend: number; // e.g. +8%
+  lastActive: string;
+  lastActiveKey: string;
+  needsPractice: boolean;
+  statusTag: 'needs_practice' | 'improving' | 'high_progress';
+  focusAreas: string[];
+  strengths: string[];
+  isActiveChild?: boolean;
+}
+
+export interface ClassInsight {
+  id: string;
+  type: 'improvement' | 'focus_area' | 'engagement';
+  icon: string;
+  title: string;
+  metric: string;
+  description: string;
+  actionHint?: string;
 }

@@ -1,67 +1,106 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Volume2, RotateCcw, Check } from 'lucide-react';
+import { ArrowLeft, Volume2, RotateCcw, Check, Star, Zap } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useProfile, type GameCompletionResult } from '../../../context/ProfileContext';
 import { getGameContent } from '../../../content/games';
 import { speakText, soundEngine } from '../../../hooks/useSound';
+import { validateWordBuilderAnswer } from '../../../services/answerValidationService';
 import { RewardModal } from '../../gamification';
+
+interface QuestionState {
+  attempts: number;
+  isAnswered: boolean;
+  isCorrect: boolean;
+  xpAwarded: boolean;
+}
 
 export const WordBuilderGame: React.FC = () => {
   const { currentLanguage } = useLanguage();
-  const { completeGame, gamification, setScreen } = useProfile();
+  const { completeGame, addXP, addStars, gamification, setScreen } = useProfile();
 
   const content = getGameContent(currentLanguage);
   const questions = content.wordBuilder;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentQ = questions[currentIndex] || questions[0];
-
-  // Placed letter indices tracking
+  const [questionStates, setQuestionStates] = useState<Record<number, QuestionState>>({});
   const [placedIndices, setPlacedIndices] = useState<number[]>([]);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   // Rewards modal state
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [completionResult, setCompletionResult] = useState<GameCompletionResult | null>(null);
 
-  const placedWord = placedIndices.map((i) => currentQ.scrambledLetters[i]).join('');
-  const targetWord = currentQ.word;
+  const currentQ = questions[currentIndex] || questions[0];
+  const currentState: QuestionState = questionStates[currentIndex] || {
+    attempts: 0,
+    isAnswered: false,
+    isCorrect: false,
+    xpAwarded: false,
+  };
 
   const handleTileClick = (index: number) => {
-    if (placedIndices.includes(index) || isAnswered) return;
+    if (placedIndices.includes(index) || currentState.isCorrect) return;
     soundEngine.playPop();
 
     const newPlaced = [...placedIndices, index];
     setPlacedIndices(newPlaced);
+    setFeedbackMessage(null);
 
-    // If all tiles placed, evaluate
+    // If all tiles placed, validate immediately
     if (newPlaced.length === currentQ.scrambledLetters.length) {
-      const spelled = newPlaced.map((i) => currentQ.scrambledLetters[i]).join('');
-      setIsAnswered(true);
-      if (spelled === targetWord) {
-        setIsCorrect(true);
+      const placedLetters = newPlaced.map((i) => currentQ.scrambledLetters[i]);
+      const validation = validateWordBuilderAnswer(placedLetters, currentQ.word, currentLanguage);
+
+      if (validation.isCorrect) {
         soundEngine.playSuccess();
-        speakText(targetWord, currentLanguage);
+        speakText(currentQ.word, currentLanguage);
+
+        const shouldAward = !currentState.xpAwarded;
+        if (shouldAward) {
+          addXP(10);
+          addStars(1);
+        }
+
+        setQuestionStates((prev) => ({
+          ...prev,
+          [currentIndex]: {
+            attempts: (prev[currentIndex]?.attempts || 0) + 1,
+            isAnswered: true,
+            isCorrect: true,
+            xpAwarded: true,
+          },
+        }));
+        setFeedbackMessage(validation.feedback);
       } else {
-        setIsCorrect(false);
+        // Wrong arrangement
         soundEngine.playIncorrect();
+
+        setQuestionStates((prev) => ({
+          ...prev,
+          [currentIndex]: {
+            attempts: (prev[currentIndex]?.attempts || 0) + 1,
+            isAnswered: false, // NOT completed
+            isCorrect: false,
+            xpAwarded: prev[currentIndex]?.xpAwarded || false,
+          },
+        }));
+        setFeedbackMessage(validation.feedback);
       }
     }
   };
 
   const handleRemoveLast = () => {
-    if (placedIndices.length === 0 || isCorrect) return;
+    if (placedIndices.length === 0 || currentState.isCorrect) return;
     soundEngine.playPop();
     setPlacedIndices((prev) => prev.slice(0, -1));
-    setIsAnswered(false);
+    setFeedbackMessage(null);
   };
 
   const handleClear = () => {
+    if (currentState.isCorrect) return;
     soundEngine.playPop();
     setPlacedIndices([]);
-    setIsAnswered(false);
-    setIsCorrect(false);
+    setFeedbackMessage(null);
   };
 
   const handlePlayAudio = () => {
@@ -74,10 +113,9 @@ export const WordBuilderGame: React.FC = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setPlacedIndices([]);
-      setIsAnswered(false);
-      setIsCorrect(false);
+      setFeedbackMessage(null);
     } else {
-      const result = completeGame('word-builder', 20, 4);
+      const result = completeGame('word-builder', 15, 2);
       setCompletionResult(result);
       setShowRewardModal(true);
     }
@@ -85,9 +123,9 @@ export const WordBuilderGame: React.FC = () => {
 
   const handleRestartGame = () => {
     setCurrentIndex(0);
+    setQuestionStates({});
     setPlacedIndices([]);
-    setIsAnswered(false);
-    setIsCorrect(false);
+    setFeedbackMessage(null);
     setShowRewardModal(false);
     setCompletionResult(null);
   };
@@ -99,7 +137,7 @@ export const WordBuilderGame: React.FC = () => {
         <div className="flex items-center justify-between bg-white/90 backdrop-blur-md p-4 rounded-3xl border-2 border-teal-200 shadow-sm">
           <button
             onClick={() => setScreen('learning-dashboard')}
-            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95"
+            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95 cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Adventure Hub</span>
@@ -137,7 +175,7 @@ export const WordBuilderGame: React.FC = () => {
               </h3>
               <button
                 onClick={handlePlayAudio}
-                className="p-2.5 rounded-2xl bg-teal-100 hover:bg-teal-200 text-teal-800 border border-teal-300 shadow-sm active:scale-95 transition-all"
+                className="p-2.5 rounded-2xl bg-teal-100 hover:bg-teal-200 text-teal-800 border border-teal-300 shadow-sm active:scale-95 transition-all cursor-pointer"
                 title="Listen to word"
               >
                 <Volume2 className="w-5 h-5" />
@@ -154,15 +192,17 @@ export const WordBuilderGame: React.FC = () => {
               {Array.from({ length: currentQ.scrambledLetters.length }).map((_, slotIdx) => {
                 const letter = placedIndices[slotIdx] !== undefined ? currentQ.scrambledLetters[placedIndices[slotIdx]] : '';
 
+                const isAllPlaced = placedIndices.length === currentQ.scrambledLetters.length;
+
                 return (
                   <div
                     key={slotIdx}
                     className={`w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-3 flex items-center justify-center text-2xl sm:text-3xl font-black transition-all ${
                       letter
-                        ? isAnswered
-                          ? isCorrect
-                            ? 'bg-emerald-100 border-emerald-500 text-emerald-950 scale-105 shadow-md'
-                            : 'bg-rose-100 border-rose-400 text-rose-950'
+                        ? isAllPlaced
+                          ? currentState.isCorrect
+                            ? 'bg-emerald-100 border-emerald-500 text-emerald-950 scale-105 shadow-md shadow-emerald-200 ring-2 ring-emerald-200'
+                            : 'bg-rose-100 border-rose-400 text-rose-950 ring-2 ring-rose-200'
                           : 'bg-teal-50 border-teal-400 text-teal-950 shadow-sm'
                         : 'border-dashed border-slate-300 bg-slate-50'
                     }`}
@@ -175,78 +215,94 @@ export const WordBuilderGame: React.FC = () => {
           </div>
 
           {/* Scrambled Available Letters Bank */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
-              {currentQ.scrambledLetters.map((letter, idx) => {
-                const isPlaced = placedIndices.includes(idx);
+          {!currentState.isCorrect && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                {currentQ.scrambledLetters.map((letter, idx) => {
+                  const isPlaced = placedIndices.includes(idx);
 
-                return (
-                  <button
-                    key={idx}
-                    disabled={isPlaced || isCorrect}
-                    onClick={() => handleTileClick(idx)}
-                    className={`w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-3 text-2xl sm:text-3xl font-black flex items-center justify-center transition-all cursor-pointer shadow-md ${
-                      isPlaced
-                        ? 'opacity-20 border-slate-200 bg-slate-100 cursor-not-allowed scale-95'
-                        : 'border-teal-400 bg-gradient-to-b from-white to-teal-50 text-teal-950 hover:bg-teal-100 hover:scale-105 active:scale-95 ring-2 ring-teal-100'
-                    }`}
-                  >
-                    <span>{letter}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Backspace & Clear Buttons */}
-            {placedIndices.length > 0 && !isCorrect && (
-              <div className="flex justify-center gap-3 pt-1">
-                <button
-                  onClick={handleRemoveLast}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-300 active:scale-95"
-                >
-                  Undo Letter
-                </button>
-                <button
-                  onClick={handleClear}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-300 active:scale-95 flex items-center gap-1"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Clear All
-                </button>
+                  return (
+                    <button
+                      key={idx}
+                      disabled={isPlaced || currentState.isCorrect}
+                      onClick={() => handleTileClick(idx)}
+                      className={`w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-3 text-2xl sm:text-3xl font-black flex items-center justify-center transition-all cursor-pointer shadow-md ${
+                        isPlaced
+                          ? 'opacity-20 border-slate-200 bg-slate-100 cursor-not-allowed scale-95'
+                          : 'border-teal-400 bg-gradient-to-b from-white to-teal-50 text-teal-950 hover:bg-teal-100 hover:scale-105 active:scale-95 ring-2 ring-teal-100'
+                      }`}
+                    >
+                      <span>{letter}</span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </div>
+
+              {/* Backspace & Clear Buttons */}
+              {placedIndices.length > 0 && !currentState.isCorrect && (
+                <div className="flex justify-center gap-3 pt-1">
+                  <button
+                    onClick={handleRemoveLast}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-300 active:scale-95 cursor-pointer"
+                  >
+                    Undo Letter
+                  </button>
+                  <button
+                    onClick={handleClear}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-300 active:scale-95 flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Feedback & Progression */}
-          {isAnswered && (
+          {feedbackMessage && (
             <div className="pt-2 animate-in fade-in">
-              {isCorrect ? (
+              {currentState.isCorrect ? (
+                /* Strict CORRECT state: only shows when letters spell target word */
                 <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 text-emerald-700 bg-emerald-50 px-4 py-2 rounded-2xl font-black text-base border border-emerald-200">
-                    <Check className="w-5 h-5" />
-                    <span>Wonderful! You built "{targetWord}"!</span>
+                  <div className="inline-flex flex-col sm:flex-row items-center gap-2 text-emerald-800 bg-emerald-50 px-5 py-2.5 rounded-2xl font-black text-base border-2 border-emerald-300 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-emerald-600" />
+                      <span>{feedbackMessage}</span>
+                    </div>
+                    <div className="flex items-center gap-2 pl-2 sm:border-l sm:border-emerald-300 text-xs text-amber-700 font-black">
+                      <span className="flex items-center gap-0.5 bg-amber-100 px-2 py-0.5 rounded-md">
+                        <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> +10 XP
+                      </span>
+                      <span className="flex items-center gap-0.5 bg-yellow-100 px-2 py-0.5 rounded-md">
+                        <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" /> +1 ⭐
+                      </span>
+                    </div>
                   </div>
                   <div>
                     <button
                       onClick={handleNext}
-                      className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-md shadow-teal-600/20 active:scale-95 transition-all text-base"
+                      className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-md shadow-teal-600/20 active:scale-95 transition-all text-base cursor-pointer"
                     >
                       {currentIndex < questions.length - 1 ? 'Next Word →' : 'Finish Adventure! 🎉'}
                     </button>
                   </div>
                 </div>
               ) : (
+                /* Strict INCORRECT state: NO XP, NO Stars, allows clearing tiles */
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-rose-600">
-                    "{placedWord}" is close! Listen to the clue sound and try another letter arrangement!
-                  </p>
-                  <button
-                    onClick={handleClear}
-                    className="px-6 py-2.5 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm inline-flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Reset Tiles
-                  </button>
+                  <div className="inline-flex items-center gap-2 text-rose-700 bg-rose-50 px-4 py-2 rounded-2xl font-bold text-sm border border-rose-300">
+                    <span>{feedbackMessage}</span>
+                  </div>
+                  <div>
+                    <button
+                      onClick={handleClear}
+                      className="px-6 py-2.5 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm inline-flex items-center gap-2 cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Reset Tiles & Try Again
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -258,8 +314,8 @@ export const WordBuilderGame: React.FC = () => {
       <RewardModal
         isOpen={showRewardModal}
         gameTitle="Word Builder"
-        earnedXP={20}
-        earnedStars={4}
+        earnedXP={15}
+        earnedStars={2}
         totalXP={gamification.xp}
         unlockedBadgeId={completionResult?.newlyUnlockedBadgeId}
         skillGrowth={completionResult?.skillGrowth}

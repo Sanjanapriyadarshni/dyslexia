@@ -7,16 +7,27 @@ import {
   CheckCircle2,
   HelpCircle,
   RotateCcw,
+  Star,
+  Zap,
 } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useProfile, type GameCompletionResult } from '../../../context/ProfileContext';
 import { getGameContent } from '../../../content/games';
 import { speakText, soundEngine } from '../../../hooks/useSound';
+import { validateMultipleChoiceAnswer } from '../../../services/answerValidationService';
 import { RewardModal } from '../../gamification';
+
+interface QuestionState {
+  attempts: number;
+  isAnswered: boolean;
+  isCorrect: boolean;
+  xpAwarded: boolean;
+  selectedOption: number | null;
+}
 
 export const StoryExplorerGame: React.FC = () => {
   const { currentLanguage } = useLanguage();
-  const { completeGame, gamification, setScreen } = useProfile();
+  const { completeGame, addXP, addStars, gamification, setScreen } = useProfile();
 
   const content = getGameContent(currentLanguage);
   const stories = content.storyExplorer;
@@ -26,15 +37,21 @@ export const StoryExplorerGame: React.FC = () => {
 
   const [step, setStep] = useState<'reading' | 'quiz'>('reading');
   const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
+  const [questionStates, setQuestionStates] = useState<Record<number, QuestionState>>({});
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   // Rewards modal state
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [completionResult, setCompletionResult] = useState<GameCompletionResult | null>(null);
 
   const currentQ = questions[currentQIndex] || questions[0];
+  const currentState: QuestionState = questionStates[currentQIndex] || {
+    attempts: 0,
+    isAnswered: false,
+    isCorrect: false,
+    xpAwarded: false,
+    selectedOption: null,
+  };
 
   const handlePlayStoryAudio = () => {
     soundEngine.playPop();
@@ -48,29 +65,72 @@ export const StoryExplorerGame: React.FC = () => {
   };
 
   const handleSelectOption = (idx: number) => {
-    if (isAnswered) return;
-    setSelectedOption(idx);
-    setIsAnswered(true);
+    if (currentState.isCorrect) return;
 
-    const correct = idx === currentQ.correctIndex;
-    setIsCorrect(correct);
+    const validation = validateMultipleChoiceAnswer(idx, currentQ.correctIndex, currentLanguage);
 
-    if (correct) {
+    if (validation.isCorrect) {
       soundEngine.playSuccess();
+      const shouldAward = !currentState.xpAwarded;
+      if (shouldAward) {
+        addXP(20);
+        addStars(1);
+      }
+
+      setQuestionStates((prev) => ({
+        ...prev,
+        [currentQIndex]: {
+          attempts: (prev[currentQIndex]?.attempts || 0) + 1,
+          isAnswered: true,
+          isCorrect: true,
+          xpAwarded: true,
+          selectedOption: idx,
+        },
+      }));
+      setFeedbackMessage(validation.feedback);
     } else {
+      // Wrong comprehension choice
       soundEngine.playIncorrect();
+
+      setQuestionStates((prev) => ({
+        ...prev,
+        [currentQIndex]: {
+          attempts: (prev[currentQIndex]?.attempts || 0) + 1,
+          isAnswered: false, // NOT completed
+          isCorrect: false,
+          xpAwarded: prev[currentQIndex]?.xpAwarded || false,
+          selectedOption: idx,
+        },
+      }));
+      setFeedbackMessage(
+        currentLanguage === 'en'
+          ? "Let's try that again."
+          : "மீண்டும் ஒருமுறை முயற்சி செய்வோம்."
+      );
     }
+  };
+
+  const handleTryAgain = () => {
+    soundEngine.playPop();
+    setQuestionStates((prev) => ({
+      ...prev,
+      [currentQIndex]: {
+        ...prev[currentQIndex],
+        selectedOption: null,
+        isCorrect: false,
+        isAnswered: false,
+      },
+    }));
+    setFeedbackMessage(null);
   };
 
   const handleNextQuestion = () => {
     soundEngine.playClick();
     if (currentQIndex < questions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
-      setSelectedOption(null);
-      setIsAnswered(false);
-      setIsCorrect(false);
+      setFeedbackMessage(null);
     } else {
-      const result = completeGame('story-explorer', 25, 4);
+      const result = completeGame('story-explorer', 20, 2);
       setCompletionResult(result);
       setShowRewardModal(true);
     }
@@ -79,9 +139,8 @@ export const StoryExplorerGame: React.FC = () => {
   const handleRestart = () => {
     setStep('reading');
     setCurrentQIndex(0);
-    setSelectedOption(null);
-    setIsAnswered(false);
-    setIsCorrect(false);
+    setQuestionStates({});
+    setFeedbackMessage(null);
     setShowRewardModal(false);
     setCompletionResult(null);
   };
@@ -93,7 +152,7 @@ export const StoryExplorerGame: React.FC = () => {
         <div className="flex items-center justify-between bg-white/90 backdrop-blur-md p-4 rounded-3xl border-2 border-purple-200 shadow-sm">
           <button
             onClick={() => setScreen('learning-dashboard')}
-            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95"
+            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95 cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Adventure Hub</span>
@@ -189,17 +248,15 @@ export const StoryExplorerGame: React.FC = () => {
             {/* 4 Choices */}
             <div className="space-y-3 pt-2">
               {currentQ.options.map((option, idx) => {
-                const isSelected = selectedOption === idx;
-                const isTargetCorrect = idx === currentQ.correctIndex;
+                const isSelected = currentState.selectedOption === idx;
 
                 let optStyle = 'bg-slate-50 border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 text-slate-800';
-                if (isAnswered) {
-                  if (isTargetCorrect) {
-                    optStyle = 'bg-emerald-100 border-emerald-500 text-emerald-950 ring-4 ring-emerald-200';
-                  } else if (isSelected && !isTargetCorrect) {
-                    optStyle = 'bg-rose-100 border-rose-400 text-rose-900 ring-2 ring-rose-200';
+
+                if (isSelected) {
+                  if (currentState.isCorrect) {
+                    optStyle = 'bg-emerald-100 border-emerald-500 text-emerald-950 ring-4 ring-emerald-200 shadow-emerald-200';
                   } else {
-                    optStyle = 'bg-slate-50 border-slate-200 opacity-50';
+                    optStyle = 'bg-rose-100 border-rose-400 text-rose-900 ring-4 ring-rose-200 shadow-rose-200 animate-shake';
                   }
                 }
 
@@ -207,11 +264,11 @@ export const StoryExplorerGame: React.FC = () => {
                   <button
                     key={idx}
                     onClick={() => handleSelectOption(idx)}
-                    disabled={isAnswered && isCorrect}
+                    disabled={currentState.isCorrect}
                     className={`w-full p-4 sm:p-5 rounded-2xl border-2 text-left font-bold text-base sm:text-lg flex items-center justify-between transition-all cursor-pointer active:scale-98 shadow-sm ${optStyle}`}
                   >
                     <span>{option}</span>
-                    {isAnswered && isTargetCorrect && (
+                    {isSelected && currentState.isCorrect && (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                     )}
                   </button>
@@ -220,49 +277,60 @@ export const StoryExplorerGame: React.FC = () => {
             </div>
 
             {/* Feedback / Explanation Card */}
-            {isAnswered && (
+            {currentState.selectedOption !== null && (
               <div className="pt-2 animate-in fade-in space-y-4">
-                <div
-                  className={`p-4 rounded-2xl border-2 text-left flex items-start gap-3 ${
-                    isCorrect
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                      : 'bg-amber-50 border-amber-300 text-amber-900'
-                  }`}
-                >
-                  {isCorrect ? (
-                    <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <HelpCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <p className="font-bold text-sm">
-                      {isCorrect ? 'Awesome Recall!' : 'Story Clue:'}
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium">{currentQ.explanation}</p>
-                  </div>
-                </div>
+                {currentState.isCorrect ? (
+                  /* Strict CORRECT state */
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-2xl border-2 text-left flex items-start gap-3 bg-emerald-50 border-emerald-300 text-emerald-900">
+                      <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-sm">✓ Awesome Recall!</span>
+                          <span className="flex items-center gap-0.5 bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-black text-xs">
+                            <Zap className="w-3 h-3 fill-amber-500 text-amber-500" /> +20 XP
+                          </span>
+                          <span className="flex items-center gap-0.5 bg-yellow-100 text-yellow-900 px-2 py-0.5 rounded-md font-black text-xs">
+                            <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" /> +1 ⭐
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm font-medium">{currentQ.explanation}</p>
+                      </div>
+                    </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  {!isCorrect && (
-                    <button
-                      onClick={() => {
-                        soundEngine.playPop();
-                        setSelectedOption(null);
-                        setIsAnswered(false);
-                      }}
-                      className="px-6 py-2.5 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm flex items-center gap-2"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Try Again
-                    </button>
-                  )}
-                  <button
-                    onClick={handleNextQuestion}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-md shadow-purple-600/25 active:scale-95 transition-all text-base"
-                  >
-                    {currentQIndex < questions.length - 1 ? 'Next Question →' : 'Complete Story! 🎉'}
-                  </button>
-                </div>
+                    <div className="flex items-center justify-center">
+                      <button
+                        onClick={handleNextQuestion}
+                        className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-md shadow-purple-600/25 active:scale-95 transition-all text-base cursor-pointer"
+                      >
+                        {currentQIndex < questions.length - 1 ? 'Next Question →' : 'Complete Story! 🎉'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Strict INCORRECT state */
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl border-2 text-left flex items-start gap-3 bg-rose-50 border-rose-300 text-rose-900">
+                      <HelpCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-sm">{feedbackMessage || "Let's try that again."}</p>
+                        <p className="text-xs sm:text-sm font-medium text-rose-800">
+                          Review the story paragraphs above or choose another option!
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <button
+                        onClick={handleTryAgain}
+                        className="px-6 py-2.5 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm flex items-center gap-2 cursor-pointer active:scale-95"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -273,8 +341,8 @@ export const StoryExplorerGame: React.FC = () => {
       <RewardModal
         isOpen={showRewardModal}
         gameTitle="Story Explorer"
-        earnedXP={25}
-        earnedStars={4}
+        earnedXP={20}
+        earnedStars={2}
         totalXP={gamification.xp}
         unlockedBadgeId={completionResult?.newlyUnlockedBadgeId}
         skillGrowth={completionResult?.skillGrowth}

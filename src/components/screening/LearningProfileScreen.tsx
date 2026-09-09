@@ -14,7 +14,7 @@ import { Button } from '../common/Button';
 
 export const LearningProfileScreen: React.FC = () => {
   const { t } = useLanguage();
-  const { profile, avatar, setScreen, applyScreeningScores } = useProfile();
+  const { profile, avatar, setScreen, applyScreeningScores, userRole } = useProfile();
   const { screeningReport } = useScreening();
 
   // Fallback scores if report wasn't generated
@@ -241,15 +241,16 @@ export const LearningProfileScreen: React.FC = () => {
           {t('screening.profile.startPersonalizedBtn')}
         </Button>
 
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={handleViewProgress}
-          leftIcon={<Home className="w-5 h-5" />}
-          className="w-full sm:w-auto"
-        >
-          {t('screening.profile.viewProgressBtn')}
-        </Button>
+        {userRole === 'parent' && (
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => setScreen('parent-dashboard')}
+            className="w-full sm:w-auto text-indigo-800 bg-indigo-100 hover:bg-indigo-200 font-extrabold"
+          >
+            ← {t('parent.nav.overview') || 'Back to Parent Dashboard'}
+          </Button>
+        )}
       </div>
     </div>
   );

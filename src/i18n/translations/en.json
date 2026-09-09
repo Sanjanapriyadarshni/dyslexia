@@ -310,5 +310,102 @@
       "wordBuilderReason": "Fun activity to practice arranging letters into words.",
       "soundBuilderReason": "Connect phonemes and spoken sounds with interactive letter cards."
     }
+  },
+  "roles": {
+    "child": "Child",
+    "parent": "Parent",
+    "teacher": "Teacher",
+    "switchRole": "Switch Role",
+    "childDesc": "Gamified quests & fun learning",
+    "parentDesc": "Progress insights & home advice",
+    "teacherDesc": "Class overview & student analytics"
+  },
+  "parent": {
+    "header": {
+      "badge": "Parent Oversight View",
+      "learningJourney": "'s Learning Journey",
+      "subtitle": "Monitoring reading progress, screening indicators, and at-home practice routines.",
+      "switchToChild": "Enter Child Mode"
+    },
+    "streakUnit": "Days",
+    "nav": {
+      "overview": "Overview",
+      "learningProfile": "Screening Report",
+      "childGames": "Child Adventure"
+    },
+    "overview": {
+      "title": "Learning Performance Overview",
+      "subtitle": "Non-medical screening indicators and observed skill mastery based on interactive quests",
+      "overall": "Overall Readiness",
+      "reading": "Reading Fluency",
+      "spelling": "Phonetic Spelling",
+      "letter": "Letter Recognition",
+      "comprehension": "Comprehension",
+      "thisWeek": "this week"
+    },
+    "screening": {
+      "sectionTag": "Latest Screening Assessment",
+      "title": "Comprehensive Foundational Literacy Check-In",
+      "noticeTitle": "Important Non-Medical Notice: ",
+      "noticeBody": "This screening provides learning indicators and is not a medical diagnosis. If you have concerns about your child's development, consult a qualified professional.",
+      "strengths": "Demonstrated Strengths",
+      "focusAreas": "Areas for Growth & Practice",
+      "viewFullBtn": "View Full Learning Profile",
+      "retakeBtn": "Take New Screening"
+    },
+    "chart": {
+      "title": "Weekly Progress Over Time",
+      "subtitle": "Last 7 days skill progression ending in today’s live indicator"
+    },
+    "skills": {
+      "title": "Skills Overview",
+      "subtitle": "Recent rate of skill development"
+    },
+    "help": {
+      "title": "How You Can Help (At Home)",
+      "subtitle": "Practical, stress-free reading routines tailored to your child’s current focus areas"
+    },
+    "activity": {
+      "title": "Recent Learning Activity",
+      "subtitle": "Live log of games and screening quests completed",
+      "activitiesCount": "logged",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "twoDaysAgo": "2 days ago",
+      "launchGameBtn": "Play A Learning Game Together"
+    },
+    "time": {
+      "title": "Learning Time & Habits",
+      "subtitle": "Daily practice frequency and streak persistence"
+    },
+    "badges": {
+      "title": "Badges & Milestones",
+      "subtitle": "Positive reinforcement celebrating bravery and milestones"
+    }
+  },
+  "teacher": {
+    "header": {
+      "badge": "Educator Portal",
+      "title": "Classroom Reading Dashboard",
+      "subtitle": "Foundational literacy monitoring, screening indicators, and personalized intervention analytics.",
+      "previewAsStudent": "Preview Student View"
+    },
+    "nav": {
+      "roster": "Class Roster & Analytics",
+      "previewQuests": "Preview Student Quests"
+    },
+    "insights": {
+      "title": "Class Learning Insights"
+    },
+    "roster": {
+      "title": "Student Roster & Skill Indicators",
+      "subtitle": "Select any student to inspect skill trends and assign differentiated practice",
+      "disclaimerPill": "Respectful Non-Medical Categorization",
+      "searchPlaceholder": "Search student name or focus area...",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "twoDaysAgo": "2 days ago",
+      "threeDaysAgo": "3 days ago"
+    }
   }
 }

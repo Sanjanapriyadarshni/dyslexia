@@ -24,6 +24,8 @@ import {
   SoundBuilderGame,
   StoryExplorerGame,
 } from './components/learning';
+import { ParentDashboard } from './components/parent';
+import { TeacherDashboard } from './components/teacher';
 import { RotateCcw, ShieldCheck } from 'lucide-react';
 
 const ScreenContent: React.FC = () => {
@@ -60,6 +62,10 @@ const ScreenContent: React.FC = () => {
         {currentScreen === 'game-read-aloud' && <ReadAloudGame />}
         {currentScreen === 'game-sound-builder' && <SoundBuilderGame />}
         {currentScreen === 'game-story-explorer' && <StoryExplorerGame />}
+
+        {/* Parent and Teacher Dashboards */}
+        {currentScreen === 'parent-dashboard' && <ParentDashboard />}
+        {currentScreen === 'teacher-dashboard' && <TeacherDashboard />}
       </main>
 
       {/* Modern Child-Friendly Footer */}

@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { Globe, Sparkles, Flame, ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useProfile } from '../../context/ProfileContext';
+import { RoleSwitcher } from './RoleSwitcher';
 import type { ScreenType } from '../../types';
 
 export const Navbar: React.FC = () => {
   const { currentLanguage, languageConfig, setLanguage, languages, t } = useLanguage();
-  const { profile, avatar, gamification, currentScreen, setScreen } = useProfile();
+  const { profile, avatar, gamification, currentScreen, setScreen, userRole } = useProfile();
   const [isLangOpen, setIsLangOpen] = useState(false);
 
-  const screens: { id: ScreenType; labelKey: string }[] = [
+  const childScreens: { id: ScreenType; labelKey: string }[] = [
     { id: 'splash', labelKey: 'nav.splash' },
     { id: 'language-select', labelKey: 'nav.language' },
     { id: 'profile-setup', labelKey: 'nav.profile' },
@@ -44,44 +45,102 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
 
-        {/* Center: Interactive Prototype Screen Switcher */}
-        <nav aria-label="Prototype Screens" className="hidden lg:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200">
-          {screens.map((s, idx) => {
-            const isActive = currentScreen === s.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => setScreen(s.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-white text-teal-800 shadow-sm border border-slate-200/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-              >
-                <span
-                  className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
-                    isActive ? 'bg-teal-600 text-white' : 'bg-slate-300 text-slate-700'
+        {/* Center: Interactive Role-Specific Navigation */}
+        {userRole === 'child' ? (
+          <nav aria-label="Prototype Screens" className="hidden lg:flex items-center bg-slate-100/90 p-1 rounded-2xl border border-slate-200">
+            {childScreens.map((s, idx) => {
+              const isActive = currentScreen === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setScreen(s.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-white text-teal-800 shadow-sm border border-slate-200/60'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                   }`}
                 >
-                  {idx + 1}
-                </span>
-                {t(s.labelKey)}
-              </button>
-            );
-          })}
+                  <span
+                    className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
+                      isActive ? 'bg-teal-600 text-white' : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {idx + 1}
+                  </span>
+                  {t(s.labelKey)}
+                </button>
+              );
+            })}
 
-          {(currentScreen.startsWith('screening-') || currentScreen === 'learning-profile') && (
-            <div className="ml-1 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-400 text-amber-950 flex items-center gap-1.5 shadow-sm animate-pulse">
-              <span>🎯</span>
-              <span>Screening Active</span>
-            </div>
-          )}
-        </nav>
+            {(currentScreen.startsWith('screening-') || currentScreen === 'learning-profile') && (
+              <div className="ml-1 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-400 text-amber-950 flex items-center gap-1.5 shadow-sm animate-pulse">
+                <span>🎯</span>
+                <span>Screening Active</span>
+              </div>
+            )}
+          </nav>
+        ) : userRole === 'parent' ? (
+          <nav aria-label="Parent Views" className="hidden md:flex items-center bg-indigo-50/80 p-1 rounded-2xl border border-indigo-200">
+            <button
+              onClick={() => setScreen('parent-dashboard')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                currentScreen === 'parent-dashboard'
+                  ? 'bg-white text-indigo-950 shadow-sm border border-indigo-200'
+                  : 'text-indigo-700 hover:bg-indigo-100/60'
+              }`}
+            >
+              <span>📊</span>
+              <span>{t('parent.nav.overview') || 'Parent Overview'}</span>
+            </button>
+            <button
+              onClick={() => setScreen('learning-profile')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                currentScreen === 'learning-profile'
+                  ? 'bg-white text-indigo-950 shadow-sm border border-indigo-200'
+                  : 'text-indigo-700 hover:bg-indigo-100/60'
+              }`}
+            >
+              <span>📑</span>
+              <span>{t('parent.nav.learningProfile') || 'Screening Report'}</span>
+            </button>
+            <button
+              onClick={() => setScreen('learning-dashboard')}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-100/60 transition-all flex items-center gap-1.5"
+            >
+              <span>🎮</span>
+              <span>{t('parent.nav.childGames') || 'Child Adventure'}</span>
+            </button>
+          </nav>
+        ) : (
+          <nav aria-label="Teacher Views" className="hidden md:flex items-center bg-purple-50/80 p-1 rounded-2xl border border-purple-200">
+            <button
+              onClick={() => setScreen('teacher-dashboard')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                currentScreen === 'teacher-dashboard'
+                  ? 'bg-white text-purple-950 shadow-sm border border-purple-200'
+                  : 'text-purple-700 hover:bg-purple-100/60'
+              }`}
+            >
+              <span>👩‍🏫</span>
+              <span>{t('teacher.nav.roster') || 'Class Roster & Analytics'}</span>
+            </button>
+            <button
+              onClick={() => setScreen('learning-dashboard')}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-purple-700 hover:bg-purple-100/60 transition-all flex items-center gap-1.5"
+            >
+              <span>🎮</span>
+              <span>{t('teacher.nav.previewQuests') || 'Preview Student Quests'}</span>
+            </button>
+          </nav>
+        )}
 
-        {/* Right: Gamification HUD & Profile / Language Controls */}
+        {/* Right: Role Switcher & Profile / Language Controls */}
         <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-          {/* XP & Streak (Visible on larger screens or dashboard) */}
-          {currentScreen === 'home' && (
+          {/* Role Switcher Pill */}
+          <RoleSwitcher />
+
+          {/* XP & Streak (Visible in child mode) */}
+          {userRole === 'child' && (
             <div className="hidden md:flex items-center gap-2">
               <div
                 title="Your XP points"
@@ -171,18 +230,62 @@ export const Navbar: React.FC = () => {
       </div>
 
       {/* Mobile Screen Stepper */}
-      <div className="lg:hidden border-t border-slate-200/60 bg-slate-50/80 px-4 py-1.5 flex items-center justify-around text-xs font-bold">
-        {screens.map((s, idx) => (
-          <button
-            key={s.id}
-            onClick={() => setScreen(s.id)}
-            className={`px-2 py-1 rounded-lg ${
-              currentScreen === s.id ? 'bg-teal-700 text-white' : 'text-slate-600'
-            }`}
-          >
-            {idx + 1}. {t(s.labelKey)}
-          </button>
-        ))}
+      <div className="lg:hidden border-t border-slate-200/60 bg-slate-50/80 px-4 py-1.5 flex items-center justify-around text-xs font-bold overflow-x-auto">
+        {userRole === 'child' ? (
+          childScreens.map((s, idx) => (
+            <button
+              key={s.id}
+              onClick={() => setScreen(s.id)}
+              className={`px-2 py-1 rounded-lg flex-shrink-0 ${
+                currentScreen === s.id ? 'bg-teal-700 text-white' : 'text-slate-600'
+              }`}
+            >
+              {idx + 1}. {t(s.labelKey)}
+            </button>
+          ))
+        ) : userRole === 'parent' ? (
+          <div className="flex items-center gap-2 w-full justify-around">
+            <button
+              onClick={() => setScreen('parent-dashboard')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                currentScreen === 'parent-dashboard' ? 'bg-indigo-700 text-white' : 'text-indigo-700'
+              }`}
+            >
+              📊 {t('parent.nav.overview') || 'Overview'}
+            </button>
+            <button
+              onClick={() => setScreen('learning-profile')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                currentScreen === 'learning-profile' ? 'bg-indigo-700 text-white' : 'text-indigo-700'
+              }`}
+            >
+              📑 {t('parent.nav.learningProfile') || 'Screening'}
+            </button>
+            <button
+              onClick={() => setScreen('learning-dashboard')}
+              className="px-3 py-1 rounded-lg text-xs font-bold text-indigo-700"
+            >
+              🎮 {t('parent.nav.childGames') || 'Games'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 w-full justify-around">
+            <button
+              onClick={() => setScreen('teacher-dashboard')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                currentScreen === 'teacher-dashboard' ? 'bg-purple-700 text-white' : 'text-purple-700'
+              }`}
+            >
+              👩‍🏫 {t('teacher.nav.roster') || 'Roster'}
+            </button>
+            <button
+              onClick={() => setScreen('learning-dashboard')}
+              className="px-3 py-1 rounded-lg text-xs font-bold text-purple-700"
+            >
+              🎮 {t('teacher.nav.previewQuests') || 'Preview'}
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

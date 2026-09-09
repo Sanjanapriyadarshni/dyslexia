@@ -4,33 +4,54 @@ import {
   Volume2,
   Mic,
   CheckCircle2,
-  Sparkles,
+  XCircle,
   RotateCcw,
+  Star,
+  Zap,
 } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useProfile, type GameCompletionResult } from '../../../context/ProfileContext';
 import { getGameContent } from '../../../content/games';
 import { speakText, soundEngine } from '../../../hooks/useSound';
+import { validateSpeechReading, type ValidationResult } from '../../../services/answerValidationService';
 import { RewardModal } from '../../gamification';
+
+interface QuestionState {
+  attempts: number;
+  isAnswered: boolean;
+  isCorrect: boolean;
+  xpAwarded: boolean;
+  accuracy: number;
+}
 
 export const ReadAloudGame: React.FC = () => {
   const { currentLanguage } = useLanguage();
-  const { completeGame, gamification, setScreen } = useProfile();
+  const { completeGame, addXP, addStars, gamification, setScreen } = useProfile();
 
   const content = getGameContent(currentLanguage);
   const questions = content.readAloud;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentQ = questions[currentIndex] || questions[0];
-
+  const [questionStates, setQuestionStates] = useState<Record<number, QuestionState>>({});
   const [isRecording, setIsRecording] = useState(false);
-  const [isAnalyzed, setIsAnalyzed] = useState(false);
-  const [accuracyScore, setAccuracyScore] = useState(92);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [highlightedWordIdx, setHighlightedWordIdx] = useState<number | null>(null);
+
+  // Simulation mode toggle for hackathon judges & testers: Accurate vs Mismatched
+  const [simulationMode, setSimulationMode] = useState<'accurate' | 'mismatched'>('accurate');
 
   // Rewards modal state
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [completionResult, setCompletionResult] = useState<GameCompletionResult | null>(null);
+
+  const currentQ = questions[currentIndex] || questions[0];
+  const currentState: QuestionState = questionStates[currentIndex] || {
+    attempts: 0,
+    isAnswered: false,
+    isCorrect: false,
+    xpAwarded: false,
+    accuracy: 0,
+  };
 
   const handlePlaySentenceAudio = () => {
     soundEngine.playPop();
@@ -46,41 +67,92 @@ export const ReadAloudGame: React.FC = () => {
   const handleStartRecording = () => {
     soundEngine.playClick();
     setIsRecording(true);
-    setIsAnalyzed(false);
+    setValidationResult(null);
 
-    // Simulate 3.5 seconds child reading recording
+    // Simulate 2.5s child voice input
     setTimeout(() => {
       setIsRecording(false);
-      setIsAnalyzed(true);
-      const score = Math.floor(Math.random() * 8) + 91; // 91% to 98%
-      setAccuracyScore(score);
-      soundEngine.playSuccess();
-    }, 3500);
+
+      let mockTranscript = currentQ.sentence;
+
+      // If tester/child selected mismatched simulation or first attempt has errors
+      if (simulationMode === 'mismatched') {
+        if (currentLanguage === 'ta') {
+          // Replace last word with completely different word
+          mockTranscript = currentQ.sentence.replace('விளையாடுகிறது', 'ஓடுகிறது').replace('தருகிறது', 'பார்க்கிறது');
+        } else {
+          // Replace key words with phonetic errors (e.g. ball -> bell, garden -> golden)
+          mockTranscript = currentQ.sentence
+            .replace('ball', 'bell')
+            .replace('garden', 'golden')
+            .replace('bedtime', 'bad time');
+        }
+      }
+
+      // Validate mock transcript against expected sentence
+      const validation = validateSpeechReading(mockTranscript, currentQ.sentence, currentLanguage);
+      setValidationResult(validation);
+
+      if (validation.isCorrect) {
+        soundEngine.playSuccess();
+        const shouldAward = !currentState.xpAwarded;
+        if (shouldAward) {
+          addXP(10);
+          addStars(1);
+        }
+
+        setQuestionStates((prev) => ({
+          ...prev,
+          [currentIndex]: {
+            attempts: (prev[currentIndex]?.attempts || 0) + 1,
+            isAnswered: true,
+            isCorrect: true,
+            xpAwarded: true,
+            accuracy: validation.accuracyPercentage || 95,
+          },
+        }));
+      } else {
+        // Did not meet accuracy threshold (< 75%)
+        soundEngine.playIncorrect();
+
+        setQuestionStates((prev) => ({
+          ...prev,
+          [currentIndex]: {
+            attempts: (prev[currentIndex]?.attempts || 0) + 1,
+            isAnswered: false, // NOT completed
+            isCorrect: false,
+            xpAwarded: prev[currentIndex]?.xpAwarded || false,
+            accuracy: validation.accuracyPercentage || 50,
+          },
+        }));
+      }
+    }, 2500);
+  };
+
+  const handleTryAgain = () => {
+    soundEngine.playPop();
+    setValidationResult(null);
+    setIsRecording(false);
   };
 
   const handleNext = () => {
     soundEngine.playClick();
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
-      setIsAnalyzed(false);
+      setValidationResult(null);
       setIsRecording(false);
       setHighlightedWordIdx(null);
     } else {
-      const result = completeGame('read-aloud', 25, 4);
+      const result = completeGame('read-aloud', 15, 2);
       setCompletionResult(result);
       setShowRewardModal(true);
     }
   };
 
-  const handleTryAgain = () => {
-    soundEngine.playPop();
-    setIsAnalyzed(false);
-    setIsRecording(false);
-  };
-
   const handleRestartGame = () => {
     setCurrentIndex(0);
-    setIsAnalyzed(false);
+    setQuestionStates({});
+    setValidationResult(null);
     setIsRecording(false);
     setHighlightedWordIdx(null);
     setShowRewardModal(false);
@@ -94,7 +166,7 @@ export const ReadAloudGame: React.FC = () => {
         <div className="flex items-center justify-between bg-white/90 backdrop-blur-md p-4 rounded-3xl border-2 border-sky-200 shadow-sm">
           <button
             onClick={() => setScreen('learning-dashboard')}
-            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95"
+            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95 cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Adventure Hub</span>
@@ -132,7 +204,7 @@ export const ReadAloudGame: React.FC = () => {
               </span>
               <button
                 onClick={handlePlaySentenceAudio}
-                className="p-2 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 shadow-sm active:scale-95 transition-all"
+                className="p-2 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 shadow-sm active:scale-95 transition-all cursor-pointer"
                 title="Hear full sentence"
               >
                 <Volume2 className="w-4 h-4" />
@@ -166,8 +238,35 @@ export const ReadAloudGame: React.FC = () => {
             </div>
           </div>
 
+          {/* Demo Simulation Mode Selector (Tester Tool) */}
+          {!validationResult && (
+            <div className="inline-flex items-center gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
+              <span className="text-slate-500 px-2">Voice Simulation:</span>
+              <button
+                onClick={() => setSimulationMode('accurate')}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer ${
+                  simulationMode === 'accurate'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Clear Speech (Pass)
+              </button>
+              <button
+                onClick={() => setSimulationMode('mismatched')}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer ${
+                  simulationMode === 'mismatched'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Hesitation / Mismatch (Test Fail)
+              </button>
+            </div>
+          )}
+
           {/* Recording / Listening Zone */}
-          {!isAnalyzed && (
+          {!validationResult && (
             <div className="space-y-4 pt-2">
               {isRecording ? (
                 <div className="flex flex-col items-center gap-3">
@@ -176,7 +275,7 @@ export const ReadAloudGame: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2 text-rose-600 font-bold text-sm">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-                    <span>Listening carefully to your reading...</span>
+                    <span>Listening to your reading... Speak clearly!</span>
                   </div>
                 </div>
               ) : (
@@ -193,47 +292,111 @@ export const ReadAloudGame: React.FC = () => {
             </div>
           )}
 
-          {/* Analysis & Feedback Results */}
-          {isAnalyzed && (
+          {/* Analysis & Validation Results */}
+          {validationResult && (
             <div className="space-y-5 animate-in fade-in">
-              <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-left space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                    <h4 className="font-black text-emerald-900 text-base sm:text-lg">
-                      Clear & Expressive Reading!
-                    </h4>
+              {validationResult.isCorrect ? (
+                /* Strict CORRECT state */
+                <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-left space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                      <h4 className="font-black text-emerald-900 text-base sm:text-lg">
+                        {validationResult.feedback}
+                      </h4>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-emerald-200 text-emerald-900 font-black text-sm">
+                      {validationResult.accuracyPercentage}% Accuracy
+                    </span>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-200 text-emerald-900 font-black text-sm">
-                    {accuracyScore}% Accuracy
-                  </span>
+
+                  {/* Word-by-word match breakdown */}
+                  {validationResult.wordMatches && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {validationResult.wordMatches.map((m, idx) => (
+                        <span
+                          key={idx}
+                          className={`px-2.5 py-1 rounded-xl text-xs font-bold border ${
+                            m.isMatch
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              : 'bg-rose-100 text-rose-900 border-rose-300'
+                          }`}
+                        >
+                          {m.expected} {m.isMatch ? '✓' : '✗'}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex items-center gap-2 text-xs font-black text-amber-800">
+                    <span className="flex items-center gap-0.5 bg-amber-100 px-2.5 py-1 rounded-md">
+                      <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> +10 XP
+                    </span>
+                    <span className="flex items-center gap-0.5 bg-yellow-100 px-2.5 py-1 rounded-md">
+                      <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" /> +1 ⭐
+                    </span>
+                  </div>
                 </div>
+              ) : (
+                /* Strict INCORRECT state (< 75% accuracy) */
+                <div className="p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-left space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="w-6 h-6 text-rose-600" />
+                      <h4 className="font-black text-rose-900 text-base sm:text-lg">
+                        {validationResult.feedback}
+                      </h4>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-rose-200 text-rose-900 font-black text-sm">
+                      {validationResult.accuracyPercentage}% Accuracy (Below Target)
+                    </span>
+                  </div>
 
-                <p className="text-sm text-emerald-800 font-medium leading-relaxed">
-                  {currentQ.encouragement}
-                </p>
+                  {/* Word breakdown showing errors */}
+                  {validationResult.wordMatches && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-xs font-bold text-rose-800">Word recognition breakdown:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {validationResult.wordMatches.map((m, idx) => (
+                          <span
+                            key={idx}
+                            className={`px-2.5 py-1 rounded-xl text-xs font-bold border ${
+                              m.isMatch
+                                ? 'bg-white text-slate-700 border-slate-200'
+                                : 'bg-rose-200 text-rose-950 border-rose-400 font-black'
+                            }`}
+                          >
+                            {m.expected} {m.isMatch ? '✓' : `(heard: "${m.word}")`}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                {/* Syllable precision breakdown */}
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold pt-1">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Great rhythm and smooth letter blending throughout the sentence.</span>
+                  <p className="text-xs text-rose-700 font-semibold pt-1">
+                    No XP awarded. Tap individual words above to hear them, then try reading again!
+                  </p>
                 </div>
-              </div>
+              )}
 
+              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <button
                   onClick={handleTryAgain}
-                  className="px-6 py-3 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm flex items-center gap-2"
+                  className="px-6 py-3 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <RotateCcw className="w-4 h-4" />
                   Read Again
                 </button>
-                <button
-                  onClick={handleNext}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 active:scale-95 transition-all text-base"
-                >
-                  {currentIndex < questions.length - 1 ? 'Next Sentence →' : 'Complete Activity! 🎉'}
-                </button>
+
+                {validationResult.isCorrect && (
+                  <button
+                    onClick={handleNext}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 active:scale-95 transition-all text-base cursor-pointer"
+                  >
+                    {currentIndex < questions.length - 1 ? 'Next Sentence →' : 'Complete Activity! 🎉'}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -244,8 +407,8 @@ export const ReadAloudGame: React.FC = () => {
       <RewardModal
         isOpen={showRewardModal}
         gameTitle="Read Aloud"
-        earnedXP={25}
-        earnedStars={4}
+        earnedXP={15}
+        earnedStars={2}
         totalXP={gamification.xp}
         unlockedBadgeId={completionResult?.newlyUnlockedBadgeId}
         skillGrowth={completionResult?.skillGrowth}

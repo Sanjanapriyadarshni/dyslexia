@@ -1,28 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Volume2, Check, RotateCcw, Delete } from 'lucide-react';
+import { ArrowLeft, Volume2, Check, RotateCcw, Delete, Star, Zap } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useProfile, type GameCompletionResult } from '../../../context/ProfileContext';
 import { getGameContent } from '../../../content/games';
 import { speakText, soundEngine } from '../../../hooks/useSound';
+import { validateTextAnswer } from '../../../services/answerValidationService';
 import { RewardModal } from '../../gamification';
+
+interface QuestionState {
+  attempts: number;
+  isAnswered: boolean;
+  isCorrect: boolean;
+  xpAwarded: boolean;
+  userAnswer: string;
+}
 
 export const SpellQuestGame: React.FC = () => {
   const { currentLanguage } = useLanguage();
-  const { completeGame, gamification, setScreen } = useProfile();
+  const { completeGame, addXP, addStars, gamification, setScreen } = useProfile();
 
   const content = getGameContent(currentLanguage);
   const questions = content.spellQuest;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentQ = questions[currentIndex] || questions[0];
-
+  const [questionStates, setQuestionStates] = useState<Record<number, QuestionState>>({});
   const [typedInput, setTypedInput] = useState('');
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   // Rewards modal state
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [completionResult, setCompletionResult] = useState<GameCompletionResult | null>(null);
+
+  const currentQ = questions[currentIndex] || questions[0];
+  const currentState: QuestionState = questionStates[currentIndex] || {
+    attempts: 0,
+    isAnswered: false,
+    isCorrect: false,
+    xpAwarded: false,
+    userAnswer: '',
+  };
 
   // Auto-play audio on question change
   useEffect(() => {
@@ -35,28 +51,57 @@ export const SpellQuestGame: React.FC = () => {
   };
 
   const handleAddLetter = (letter: string) => {
-    if (isAnswered) return;
+    if (currentState.isCorrect) return;
     soundEngine.playPop();
     setTypedInput((prev) => prev + letter);
+    setFeedbackMessage(null);
   };
 
   const handleDeleteLetter = () => {
-    if (isAnswered) return;
+    if (currentState.isCorrect) return;
     soundEngine.playPop();
     setTypedInput((prev) => prev.slice(0, -1));
+    setFeedbackMessage(null);
   };
 
   const handleCheckAnswer = () => {
-    if (!typedInput.trim()) return;
-    setIsAnswered(true);
+    if (!typedInput.trim() || currentState.isCorrect) return;
 
-    const match = typedInput.trim().toLowerCase() === currentQ.word.toLowerCase();
-    setIsCorrect(match);
+    // Use centralized Unicode-safe text validation
+    const validation = validateTextAnswer(typedInput, currentQ.word, currentLanguage);
 
-    if (match) {
+    if (validation.isCorrect) {
       soundEngine.playSuccess();
+      const shouldAward = !currentState.xpAwarded;
+      if (shouldAward) {
+        addXP(10);
+        addStars(1);
+      }
+
+      setQuestionStates((prev) => ({
+        ...prev,
+        [currentIndex]: {
+          attempts: (prev[currentIndex]?.attempts || 0) + 1,
+          isAnswered: true,
+          isCorrect: true,
+          xpAwarded: true,
+          userAnswer: typedInput,
+        },
+      }));
+      setFeedbackMessage(validation.feedback);
     } else {
       soundEngine.playIncorrect();
+      setQuestionStates((prev) => ({
+        ...prev,
+        [currentIndex]: {
+          attempts: (prev[currentIndex]?.attempts || 0) + 1,
+          isAnswered: false, // NOT completed
+          isCorrect: false,
+          xpAwarded: prev[currentIndex]?.xpAwarded || false,
+          userAnswer: typedInput,
+        },
+      }));
+      setFeedbackMessage(validation.feedback);
     }
   };
 
@@ -65,10 +110,9 @@ export const SpellQuestGame: React.FC = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setTypedInput('');
-      setIsAnswered(false);
-      setIsCorrect(false);
+      setFeedbackMessage(null);
     } else {
-      const result = completeGame('spell-quest', 20, 3);
+      const result = completeGame('spell-quest', 15, 2);
       setCompletionResult(result);
       setShowRewardModal(true);
     }
@@ -77,15 +121,23 @@ export const SpellQuestGame: React.FC = () => {
   const handleTryAgain = () => {
     soundEngine.playPop();
     setTypedInput('');
-    setIsAnswered(false);
-    setIsCorrect(false);
+    setFeedbackMessage(null);
+    setQuestionStates((prev) => ({
+      ...prev,
+      [currentIndex]: {
+        ...prev[currentIndex],
+        isCorrect: false,
+        isAnswered: false,
+        userAnswer: '',
+      },
+    }));
   };
 
   const handleRestartGame = () => {
     setCurrentIndex(0);
+    setQuestionStates({});
     setTypedInput('');
-    setIsAnswered(false);
-    setIsCorrect(false);
+    setFeedbackMessage(null);
     setShowRewardModal(false);
     setCompletionResult(null);
   };
@@ -97,7 +149,7 @@ export const SpellQuestGame: React.FC = () => {
         <div className="flex items-center justify-between bg-white/90 backdrop-blur-md p-4 rounded-3xl border-2 border-rose-200 shadow-sm">
           <button
             onClick={() => setScreen('learning-dashboard')}
-            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95"
+            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors flex items-center gap-2 text-sm font-bold active:scale-95 cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Adventure Hub</span>
@@ -135,7 +187,7 @@ export const SpellQuestGame: React.FC = () => {
               </h3>
               <button
                 onClick={handlePlayAudio}
-                className="p-3 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 shadow-sm active:scale-95 transition-all"
+                className="p-3 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 shadow-sm active:scale-95 transition-all cursor-pointer"
                 title="Hear word sound again"
               >
                 <Volume2 className="w-5 h-5 animate-pulse" />
@@ -148,10 +200,10 @@ export const SpellQuestGame: React.FC = () => {
             <div className="flex items-center justify-center">
               <div
                 className={`min-w-[200px] sm:min-w-[280px] max-w-md px-6 py-4 rounded-2xl border-3 text-3xl sm:text-4xl font-black tracking-widest transition-all ${
-                  isAnswered
-                    ? isCorrect
-                      ? 'bg-emerald-100 border-emerald-500 text-emerald-950 ring-4 ring-emerald-200'
-                      : 'bg-rose-100 border-rose-400 text-rose-950'
+                  currentState.attempts > 0
+                    ? currentState.isCorrect
+                      ? 'bg-emerald-100 border-emerald-500 text-emerald-950 ring-4 ring-emerald-200 shadow-emerald-200'
+                      : 'bg-rose-100 border-rose-400 text-rose-950 ring-2 ring-rose-200'
                     : 'bg-slate-50 border-rose-300 text-slate-900 shadow-inner'
                 }`}
               >
@@ -172,7 +224,7 @@ export const SpellQuestGame: React.FC = () => {
           </div>
 
           {/* Onscreen Letter Pad / Bank */}
-          {!isAnswered && (
+          {!currentState.isCorrect && (
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap max-w-md mx-auto">
                 {currentQ.letterBank.map((letter, idx) => (
@@ -206,35 +258,49 @@ export const SpellQuestGame: React.FC = () => {
           )}
 
           {/* Feedback & Actions */}
-          {isAnswered && (
+          {feedbackMessage && (
             <div className="pt-2 animate-in fade-in">
-              {isCorrect ? (
+              {currentState.isCorrect ? (
+                /* Strict CORRECT state: only shows when word matches expected */
                 <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 text-emerald-700 bg-emerald-50 px-4 py-2 rounded-2xl font-black text-base border border-emerald-200">
-                    <Check className="w-5 h-5" />
-                    <span>Brilliant spelling! You mastered "{currentQ.word}"!</span>
+                  <div className="inline-flex flex-col sm:flex-row items-center gap-2 text-emerald-800 bg-emerald-50 px-5 py-2.5 rounded-2xl font-black text-base border-2 border-emerald-300 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-emerald-600" />
+                      <span>{feedbackMessage}</span>
+                    </div>
+                    <div className="flex items-center gap-2 pl-2 sm:border-l sm:border-emerald-300 text-xs text-amber-700 font-black">
+                      <span className="flex items-center gap-0.5 bg-amber-100 px-2 py-0.5 rounded-md">
+                        <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> +10 XP
+                      </span>
+                      <span className="flex items-center gap-0.5 bg-yellow-100 px-2 py-0.5 rounded-md">
+                        <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" /> +1 ⭐
+                      </span>
+                    </div>
                   </div>
                   <div>
                     <button
                       onClick={handleNext}
-                      className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 active:scale-95 transition-all text-base"
+                      className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-600/20 active:scale-95 transition-all text-base cursor-pointer"
                     >
                       {currentIndex < questions.length - 1 ? 'Next Word →' : 'Complete Quest! 🎉'}
                     </button>
                   </div>
                 </div>
               ) : (
+                /* Strict INCORRECT state: NO XP, NO Stars, allows retry */
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-rose-600">
-                    Great attempt! The letters sound very close. Try typing it once more!
-                  </p>
-                  <button
-                    onClick={handleTryAgain}
-                    className="px-6 py-2.5 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm inline-flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Try Again
-                  </button>
+                  <div className="inline-flex items-center gap-2 text-rose-700 bg-rose-50 px-4 py-2 rounded-2xl font-bold text-sm border border-rose-300">
+                    <span>{feedbackMessage}</span>
+                  </div>
+                  <div>
+                    <button
+                      onClick={handleTryAgain}
+                      className="px-6 py-2.5 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm inline-flex items-center gap-2 cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Try Again
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -246,8 +312,8 @@ export const SpellQuestGame: React.FC = () => {
       <RewardModal
         isOpen={showRewardModal}
         gameTitle="Spell Quest"
-        earnedXP={20}
-        earnedStars={3}
+        earnedXP={10}
+        earnedStars={2}
         totalXP={gamification.xp}
         unlockedBadgeId={completionResult?.newlyUnlockedBadgeId}
         skillGrowth={completionResult?.skillGrowth}
