@@ -14,7 +14,6 @@ import {
   BookOpen,
   ArrowUpRight,
   TrendingUp,
-  Award,
   Sparkles,
   Printer,
   ChevronRight,
@@ -22,7 +21,6 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  UserCheck,
 } from 'lucide-react';
 import { useProfile } from '../../context/ProfileContext';
 import { useLanguage } from '../../context/LanguageContext';
